@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+// Removed dotenv - not needed for Railway
 
 const app = express();
 
@@ -21,7 +21,8 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'BrieflyAI Backend is running!',
     status: 'healthy',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: 'production'
   });
 });
 
@@ -38,9 +39,12 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/register', (req, res) => {
   const { name, email, password, referralCode } = req.body;
   
+  console.log(`📝 Registration attempt: ${email}`);
+  
   // Check if user exists
   const existingUser = users.find(u => u.email === email);
   if (existingUser) {
+    console.log(`❌ User already exists: ${email}`);
     return res.status(400).json({ 
       success: false, 
       message: 'User already exists with this email' 
@@ -67,7 +71,7 @@ app.post('/api/auth/register', (req, res) => {
   }
   userCredits.set(userId, credits);
   
-  console.log(`New user registered: ${email} with ${credits} credits`);
+  console.log(`✅ User registered: ${email} with ${credits} credits`);
   
   res.json({ 
     success: true, 
@@ -81,8 +85,11 @@ app.post('/api/auth/register', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   
+  console.log(`🔐 Login attempt: ${email}`);
+  
   const user = users.find(u => u.email === email && u.password === password);
   if (!user) {
+    console.log(`❌ Invalid credentials: ${email}`);
     return res.status(400).json({ 
       success: false, 
       message: 'Invalid email or password' 
@@ -91,7 +98,7 @@ app.post('/api/auth/login', (req, res) => {
   
   const credits = userCredits.get(user.id) || 0;
   
-  console.log(`User logged in: ${email} with ${credits} credits`);
+  console.log(`✅ User logged in: ${email} with ${credits} credits`);
   
   res.json({ 
     success: true, 
@@ -105,7 +112,7 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/generate-brief', (req, res) => {
   const { clientName, projectType, budget, timeline, goals, requirements } = req.body;
   
-  console.log(`Generating brief for: ${clientName} - ${projectType}`);
+  console.log(`🚀 Generating brief: ${clientName} - ${projectType}`);
   
   // Enhanced brief generation
   const brief = {
@@ -120,6 +127,8 @@ app.post('/api/generate-brief', (req, res) => {
   
   briefs.push(brief);
   
+  console.log(`✅ Brief generated successfully`);
+  
   res.json({ success: true, brief });
 });
 
@@ -128,7 +137,10 @@ app.post('/api/briefs/generate', (req, res) => {
   const { formData } = req.body;
   const authHeader = req.headers.authorization;
   
+  console.log(`🚀 Auth brief generation attempt`);
+  
   if (!authHeader || !authHeader.startsWith('Bearer token_')) {
+    console.log(`❌ No auth header provided`);
     return res.status(401).json({ 
       success: false, 
       message: 'Authentication required' 
@@ -138,7 +150,10 @@ app.post('/api/briefs/generate', (req, res) => {
   const userId = authHeader.replace('Bearer token_', '');
   const credits = userCredits.get(userId) || 0;
   
+  console.log(`💳 User ${userId} has ${credits} credits`);
+  
   if (credits < 1) {
+    console.log(`❌ Insufficient credits for user ${userId}`);
     return res.status(400).json({ 
       success: false, 
       message: 'Insufficient credits. You need at least 1 credit to generate a brief.' 
@@ -161,7 +176,7 @@ app.post('/api/briefs/generate', (req, res) => {
   
   briefs.push(brief);
   
-  console.log(`Brief generated for user ${userId}. Credits remaining: ${credits - 1}`);
+  console.log(`✅ Auth brief generated for user ${userId}. Credits remaining: ${credits - 1}`);
   
   res.json({ 
     success: true, 
@@ -183,6 +198,8 @@ app.get('/api/user/credits', (req, res) => {
   
   const userId = authHeader.replace('Bearer token_', '');
   const credits = userCredits.get(userId) || 0;
+  
+  console.log(`💳 Credits check for user ${userId}: ${credits}`);
   
   res.json({ success: true, credits });
 });
@@ -286,4 +303,5 @@ app.listen(PORT, () => {
   console.log(`🚀 BrieflyAI Backend running on port ${PORT}`);
   console.log(`📊 Ready to serve requests`);
   console.log(`🌐 CORS enabled for localhost:3000`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
