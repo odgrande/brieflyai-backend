@@ -14,6 +14,70 @@ app.get('/', (req, res) => {
   res.json({ message: 'BrieflyAI Backend is running!' });
 });
 
+// Simple user storage (in production, use a real database)
+const users = [];
+
+// Register route
+app.post('/api/auth/register', (req, res) => {
+  const { name, email, password } = req.body;
+  
+  // Check if user exists
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) {
+    return res.status(400).json({
+      success: false,
+      message: 'User already exists'
+    });
+  }
+  
+  // Create new user
+  const user = {
+    id: Date.now(),
+    name,
+    email,
+    password, // In production, hash this!
+    credits: 5
+  };
+  
+  users.push(user);
+  
+  res.json({
+    success: true,
+    user: { id: user.id, name: user.name, email: user.email },
+    credits: user.credits,
+    message: 'User registered successfully'
+  });
+});
+
+// Login route
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  
+  const user = users.find(u => u.email === email && u.password === password);
+  
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid credentials'
+    });
+  }
+  
+  res.json({
+    success: true,
+    user: { id: user.id, name: user.name, email: user.email },
+    credits: user.credits,
+    message: 'Login successful'
+  });
+});
+
+// Get user credits
+app.get('/api/user/credits', (req, res) => {
+  res.json({
+    success: true,
+    credits: 5
+  });
+});
+
 const AIBriefGenerator = require('./services/aiService');
 const aiGenerator = new AIBriefGenerator();
 
